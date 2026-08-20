@@ -1,8 +1,8 @@
 # Capture grouped settlement errors from a TypeScript backend
 
-A payout settlement can blow up well after the card was already accepted. This little program catches that backend exception and posts it to Infrai, where repeated captured events get grouped instead of paging us twice.
+A payout settlement can blow up well after the card charge already succeeded. This small program catches that backend exception and posts it to Infrai, which groups repeated captured events so we don't get paged twice for the same root cause.
 
-Infrai is used here as a plain REST call from any language: this example needs one `INFRAI_API_KEY` and no error-tracking SDK. The capture request carries only the exception payload, so the integration stays next to the code that noticed the failed settlement.
+Infrai is used here as a plain REST call from any language: this example needs one `INFRAI_API_KEY` and no error-tracking SDK. The capture request carries only the exception payload, which keeps the integration next to the code that actually saw the failed settlement.
 
 ## Run the example
 
@@ -17,11 +17,11 @@ Expected output:
 Settlement error captured and grouped.
 ```
 
-`src/index.ts` makes an explicit `POST` request to `errors/capture`. It reads the `{ok, data, error, metadata}` envelope before continuing. A rate-limited request waits using `Retry-After` when supplied, otherwise uses exponential delays. The capture retry keeps one generated idempotency key, so one logical settlement error is one submission, not five.
+`src/index.ts` makes an explicit `POST` request to `errors/capture`. It reads the `{ok, data, error, metadata}` envelope before continuing. A rate-limited request waits using `Retry-After` when supplied, otherwise uses exponential delays. The capture retry retains one generated idempotency key, so one logical settlement error stays one submission. Missed-job postmortems usually trace back to a dropped retry; this is the guard.
 
 ## Put it in a service
 
-Replace `settlePayout()` with the operation in a worker or API handler. Keep the `catch` block at the boundary where the failure becomes actionable; it ships the exception for server-side grouping. The success message is the only console output on purpose. Application logging is left to the host service, same as any runbook step.
+Replace `settlePayout()` with the operation in a worker or API handler. Keep the `catch` block at the boundary where the failure becomes actionable; it sends the exception for server-side grouping. The success message is the only console output on purpose, so the host service keeps its own logging policy.
 
 ## License
 
@@ -29,7 +29,7 @@ MIT
 
 ## Going to production: Fintech Backend Error Groups
 
-The example above is intentionally minimal. For real use, wire up a few things. The notes below apply to Fintech Backend Error Groups.
+The example above is intentionally minimal. A few things to wire up for real use: The details below apply to Fintech Backend Error Groups.
 
 **Account & key**
 
