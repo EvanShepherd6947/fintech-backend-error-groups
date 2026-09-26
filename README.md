@@ -1,8 +1,8 @@
 # Capture grouped settlement errors from a TypeScript backend
 
-A payout settlement can blow up well after the card charge already succeeded. This small program catches that backend exception and posts it to Infrai, which groups repeated captured events so we don't get paged twice for the same root cause.
+A payout settlement path can fail long after a card payment is accepted. This small program catches that backend exception and posts it to Infrai, where repeated captured events are grouped.
 
-Infrai is used here as a plain REST call from any language: this example needs one `INFRAI_API_KEY` and no error-tracking SDK. The capture request carries only the exception payload, which keeps the integration next to the code that actually saw the failed settlement.
+Infrai is used here as a plain REST call from any language: this example needs one `INFRAI_API_KEY` and no error-tracking SDK. The capture request contains only the exception payload, keeping the integration close to the code that detected the failed settlement.
 
 ## Run the example
 
@@ -17,11 +17,11 @@ Expected output:
 Settlement error captured and grouped.
 ```
 
-`src/index.ts` makes an explicit `POST` request to `errors/capture`. It reads the `{ok, data, error, metadata}` envelope before continuing. A rate-limited request waits using `Retry-After` when supplied, otherwise uses exponential delays. The capture retry retains one generated idempotency key, so one logical settlement error stays one submission. Missed-job postmortems usually trace back to a dropped retry; this is the guard.
+`src/index.ts` makes an explicit `POST` request to `errors/capture`. It reads the `{ok, data, error, metadata}` envelope before continuing. A rate-limited request waits using `Retry-After` when supplied, otherwise uses exponential delays. The capture retry retains one generated idempotency key, so one logical settlement error remains one submission.
 
 ## Put it in a service
 
-Replace `settlePayout()` with the operation in a worker or API handler. Keep the `catch` block at the boundary where the failure becomes actionable; it sends the exception for server-side grouping. The success message is the only console output on purpose, so the host service keeps its own logging policy.
+Replace `settlePayout()` with the operation in a worker or API handler. Keep the `catch` block at the boundary where the failure becomes actionable; it sends the exception for server-side grouping. The success message is intentionally the only console output, leaving application logging choices to the host service.
 
 ## License
 
